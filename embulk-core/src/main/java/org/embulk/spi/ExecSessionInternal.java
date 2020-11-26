@@ -20,7 +20,6 @@ import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
 import org.embulk.jruby.JRubyPluginSource;
 import org.embulk.jruby.ScriptingContainerDelegate;
-import org.embulk.plugin.InjectedPluginSource;
 import org.embulk.plugin.PluginClassLoaderFactory;
 import org.embulk.plugin.PluginClassLoaderFactoryImpl;
 import org.embulk.plugin.PluginManager;
@@ -173,7 +172,6 @@ public class ExecSessionInternal extends ExecSession {
                 (parentFirstResources != null) ? parentFirstResources : Collections.unmodifiableSet(new HashSet<>()));
         this.pluginManager = PluginManager.with(
                 embulkSystemProperties,
-                new InjectedPluginSource(injector),
                 new MavenPluginSource(injector, embulkSystemProperties, pluginClassLoaderFactory),
                 new SelfContainedPluginSource(injector, embulkSystemProperties, pluginClassLoaderFactory),
                 new JRubyPluginSource(injector.getInstance(ScriptingContainerDelegate.class), pluginClassLoaderFactory));
