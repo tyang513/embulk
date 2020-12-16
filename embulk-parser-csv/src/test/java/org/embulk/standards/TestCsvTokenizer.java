@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 The Embulk project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.embulk.standards;
 
 import static org.junit.Assert.assertEquals;
@@ -14,11 +30,13 @@ import org.embulk.config.ConfigSource;
 import org.embulk.spi.Buffer;
 import org.embulk.spi.BufferImpl;
 import org.embulk.spi.Column;
-import org.embulk.spi.Exec;
 import org.embulk.spi.FileInput;
 import org.embulk.spi.Schema;
-import org.embulk.spi.util.LineDecoder;
-import org.embulk.spi.util.ListFileInput;
+import org.embulk.util.config.ConfigMapperFactory;
+import org.embulk.util.config.modules.CharsetModule;
+import org.embulk.util.config.modules.TypeModule;
+import org.embulk.util.file.ListFileInput;
+import org.embulk.util.text.LineDecoder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +50,7 @@ public class TestCsvTokenizer {
 
     @Before
     public void setup() {
-        config = Exec.newConfigSource()
+        config = CONFIG_MAPPER_FACTORY.newConfigSource()
             .set("newline", "LF")
             .set("columns", ImmutableList.of(
                         ImmutableMap.<String,Object>of(
@@ -44,7 +62,7 @@ public class TestCsvTokenizer {
     }
 
     private void reloadPluginTask() {
-        task = config.loadConfig(CsvParserPlugin.PluginTask.class);
+        this.task = CONFIG_MAPPER_FACTORY.createConfigMapper().map(this.config, CsvParserPlugin.PluginTask.class);
     }
 
     private static FileInput newFileInputFromLines(CsvParserPlugin.PluginTask task, String... lines) {
@@ -67,7 +85,7 @@ public class TestCsvTokenizer {
     }
 
     private static List<List<String>> parse(CsvParserPlugin.PluginTask task, FileInput input) {
-        LineDecoder decoder = new LineDecoder(input, task);
+        final LineDecoder decoder = LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null));
         CsvTokenizer tokenizer = new CsvTokenizer(decoder, task);
         Schema schema = task.getSchemaConfig().toSchema();
 
@@ -378,7 +396,7 @@ public class TestCsvTokenizer {
             "v6,v7",      // this line should be not be skiped
         };
         FileInput input = newFileInputFromLines(task, lines);
-        LineDecoder decoder = new LineDecoder(input, task);
+        final LineDecoder decoder = LineDecoder.of(input, task.getCharset(), task.getLineDelimiterRecognized().orElse(null));
         CsvTokenizer tokenizer = new CsvTokenizer(decoder, task);
         Schema schema = task.getSchemaConfig().toSchema();
 
@@ -423,4 +441,10 @@ public class TestCsvTokenizer {
                 parsed);
     }
     */
+
+    private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory.builder()
+            .addDefaultModules()
+            .addModule(new CharsetModule())
+            .addModule(new TypeModule())
+            .build();
 }
